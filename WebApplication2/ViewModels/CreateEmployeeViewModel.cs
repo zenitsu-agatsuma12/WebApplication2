@@ -1,10 +1,7 @@
-﻿using System.ComponentModel;
-using System.ComponentModel.DataAnnotations;
+namespace WebApplication2.ViewModels;
 
-namespace WebApplication2.Models
+public class EmployeeFormModel
 {
-    public class Employee
-    {
         public int Id { get; set; }
         [Required]
         [DisplayName("Full Name")]
@@ -23,21 +20,10 @@ namespace WebApplication2.Models
         public string PhoneNumber { get; set; }
         [DisplayName("Department Id")]
         public int DeptId { get; set; }
+}
 
-        [DisplayName("Department")]
-        public Department? Department { get; set; }
-       
-        public Employee() { }
-
-        public Employee(int id, string fullName, string emailAdress, DateTime dOB, string phoneNumber, int deptId)
-        {
-            Id = id;
-            FullName = fullName;
-            EmailAdress = emailAdress;
-            DOB = dOB;
-            PhoneNumber = phoneNumber;
-            DeptId = deptId;
-          
-        }
-    }
+public class CreateEmployeeViewModel
+{
+    EmployeeFormModel NewEmployee { get; set; } = new EmployeeFormModel();
+    List<Department> Departments = new();
 }

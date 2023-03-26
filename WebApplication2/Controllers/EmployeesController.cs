@@ -13,32 +13,33 @@ namespace WebApplication2.Controllers
 {
     public class EmployeesController : Controller
     {
-        // private readonly EMSDBContext _repo;
-        IEmployeeDBRepository _repo;
+        // private readonly EMSDBContext _employeesRepository;
+        IEmployeeDBRepository _employeesRepository;
+        IDepartmentDBRepository _departmentRepository;
 
-        public EmployeesController(IEmployeeDBRepository repo)
+        public EmployeesController(IEmployeeDBRepository employeesRepository, IDepartmentDBRepository departmentRepository)
         {
-            _repo = repo;
+            _employeesRepository = employeesRepository;
+            _departmentRepository = departmentRepository;
         }
 
         // GET: Employees
         public async Task<IActionResult> Index()
         {
            // var eMSDBContext = _repo.Employees.Include(e => e.Department);
-            return View(await _repo.GetAllEmployees());
+            return View(await _employeesRepository.GetAllEmployees());
         }
 
         // GET: Employees/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null || _repo.Employees == null)
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var employee = await _repo.Employees
-                .Include(e => e.Department)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var employee = await _employeesRepository.GetEmployeeById(id)
+
             if (employee == null)
             {
                 return NotFound();
@@ -48,10 +49,13 @@ namespace WebApplication2.Controllers
         }
 
         // GET: Employees/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create([Bind("")])
         {
-            ViewData["DeptId"] = new SelectList(_repo.Department, "Id", "Name");
-            return View();
+            CreateEmployeeViewModel createEmployeeViewModel = new CreateEmployeeViewModel {
+                Departments = await _departmentRepository.GetDepartments()
+            };
+
+            return View(createEmployeeViewModel);
         }
 
         // POST: Employees/Create
@@ -59,32 +63,44 @@ namespace WebApplication2.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,FullName,EmailAdress,DOB,PhoneNumber,DeptId")] Employee employee)
+        public async Task<IActionResult> Create (CreateEmployeeViewModel createEmployeeViewModel)
         {
             if (ModelState.IsValid)
             {
-                _repo.Add(employee);
-                await _repo.SaveChangesAsync();
+                Employee newEmployee = new Employee {
+                    FullName = createEmployeeViewModel.NewEmployee.FullName,
+                    EmailAddress = createEmployeeViewModel.NewEmployee.FullName,
+                    DOB = createEmployeeViewModel.NewEmployee.FullName,
+                    PhoneNumber = createEmployeeViewModel.NewEmployee.FullName,
+                    DeptId = createEmployeeViewModel.NewEmployee.DeptId
+                }
+
+                await _employeesRepository.AddEmployee(newEmployee);
+
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["DeptId"] = new SelectList(_repo.Department, "Id", "Name", employee.DeptId);
-            return View(employee);
+
+            CreateEmployeeViewModel createEmployeeViewModel = new CreateEmployeeViewModel {
+                Departments = _departmentRepository.GetDepartments()
+            };
+
+            return View(createEmployeeViewModel);
         }
 
         // GET: Employees/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
-            if (id == null || _repo.Employees == null)
+            if (id == null || _employeesRepository.Employees == null)
             {
                 return NotFound();
             }
 
-            var employee = await _repo.Employees.FindAsync(id);
+            var employee = await _employeesRepository.Employees.FindAsync(id);
             if (employee == null)
             {
                 return NotFound();
             }
-            ViewData["DeptId"] = new SelectList(_repo.Department, "Id", "Name", employee.DeptId);
+            ViewData["DeptId"] = new SelectList(_employeesRepository.Department, "Id", "Name", employee.DeptId);
             return View(employee);
         }
 
@@ -104,8 +120,8 @@ namespace WebApplication2.Controllers
             {
                 try
                 {
-                    _repo.Update(employee);
-                    await _repo.SaveChangesAsync();
+                    _employeesRepository.Update(employee);
+                    await _employeesRepository.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
@@ -120,21 +136,19 @@ namespace WebApplication2.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            ViewData["DeptId"] = new SelectList(_repo.Department, "Id", "Name", employee.DeptId);
+            ViewData["DeptId"] = new SelectList(_employeesRepository.Department, "Id", "Name", employee.DeptId);
             return View(employee);
         }
 
         // GET: Employees/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
-            if (id == null || _repo.Employees == null)
+            if (id == null)
             {
                 return NotFound();
             }
 
-            var employee = await _repo.Employees
-                .Include(e => e.Department)
-                .FirstOrDefaultAsync(m => m.Id == id);
+            var employee = await _employeesRepository.FindEmployeeById(id);
             if (employee == null)
             {
                 return NotFound();
@@ -148,23 +162,24 @@ namespace WebApplication2.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            if (_repo.Employees == null)
+            if (_employeesRepository.GetAllEmployees() == null)
             {
                 return Problem("Entity set 'EMSDBContext.Employees'  is null.");
             }
-            var employee = await _repo.Employees.FindAsync(id);
+
+            var employee = await _employeesRepository.GetEmployeeById(id);
             if (employee != null)
             {
-                _repo.Employees.Remove(employee);
+               await _employeesRepository.DeleteEmployee(employee);
             }
             
-            await _repo.SaveChangesAsync();
+            await _employeesRepository.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
 
         private bool EmployeeExists(int id)
         {
-          return (_repo.Employees?.Any(e => e.Id == id)).GetValueOrDefault();
+          return (_employeesRepository.Employees?.Any(e => e.Id == id)).GetValueOrDefault();
         }
     }
 }

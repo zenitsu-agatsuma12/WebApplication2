@@ -6,50 +6,53 @@ namespace WebApplication2.Repositories.MSSQL
 {
     public class EmployeeDBRepository : IEmployeeDBRepository
     {
-        EMSDBContext _EMSdbContext;
+        private readonly EMSDBContext _EMSdbContext;
+
         public EmployeeDBRepository(EMSDBContext EMSDBContext)
         {
             _EMSdbContext = EMSDBContext;
         }
-        public Employee AddEmployee(Employee Employee)
+
+        public async Task<Employee> AddEmployee(Employee Employee)
         {
-            _EMSdbContext.Employees.Add(Employee);
-            _EMSdbContext.SaveChanges();
+             await _EMSdbContext.Employees.AddAsync(Employee);
+             await _EMSdbContext.SaveChangesAsync();
+
             return Employee;
         }
 
-        public Employee DeleteEmployee(int EmployeeId)
+        public async Task<Employee> DeleteEmployee(int EmployeeId)
         {
-            var oldEmployee = GetEmployeeById(EmployeeId);
+            var oldEmployee = await GetEmployeeById(EmployeeId);
             if (oldEmployee != null)
             {
-                _EMSdbContext.Employees.Remove(oldEmployee);
-                _EMSdbContext.SaveChanges();
+                await _EMSdbContext.Employees.RemoveAsync(oldEmployee);
+                await _EMSdbContext.SaveChangesAsync();
                 return oldEmployee;
             }
             return null;
         }
 
-        public Task <List<Employee>> GetAllEmployees()
+        public async Task<List<Employee>> GetAllEmployees()
         {
-            return Task.FromResult(_EMSdbContext.Employees.Include(x => x.Department).ToList());
+            return await _EMSdbContext.Employees.Include(x => x.Department).ToListAsync();
         }
 
-        public Employee GetEmployeeById(int EmployeeId)
+        public async Task<Employee> GetEmployeeById(int EmployeeId)
         {
-            return _EMSdbContext.Employees.AsNoTracking().FirstOrDefault(x => x.Id == EmployeeId);
+            return await _EMSdbContext.Employees.AsNoTracking().FindAsync(x => x.Id == EmployeeId);
         }
 
-        public Employee UpdateEmployee(int EmployeeId, Employee Employee)
+        public async Task<Employee> UpdateEmployee(int EmployeeId, Employee Employee)
         {
             _EMSdbContext.Employees.Update(Employee);
-            _EMSdbContext.SaveChanges();
+            await  _EMSdbContext.SaveChangesAsync();
             return Employee;
         }
 
-        public List<Department> FetchDepartmentList()
+        public async Task<List<Department>> FetchDepartmentList()
         {
-            return _EMSdbContext.Department.ToList();
+            return await _EMSdbContext.Department.ToListAsync();
         }
     }
 }
